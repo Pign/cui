@@ -33,16 +33,17 @@ class HStack extends View {
         var fh = getFixedHeight();
         if (fh > 0) maxH = fh - insets.verticalTotal();
 
+        var widths = distributeWidths(maxW, maxH);
         var totalW = 0;
         var tallest = 0;
         var spacerCount = 0;
 
-        for (child in children) {
-            if (Std.isOfType(child, Spacer)) {
+        for (i in 0...children.length) {
+            if (Std.isOfType(children[i], Spacer)) {
                 spacerCount++;
             } else {
-                var cs = child.measure(Constraint.AtMost(maxW, maxH));
-                totalW += cs.width;
+                totalW += widths[i];
+                var cs = children[i].measure(Constraint.AtMost(widths[i], maxH));
                 if (cs.height > tallest) tallest = cs.height;
             }
         }
@@ -56,7 +57,6 @@ class HStack extends View {
 
         var w = fw > 0 ? fw : totalW + insets.horizontalTotal();
         var h = fh > 0 ? fh : tallest + insets.verticalTotal();
-
         return new Size(w, h);
     }
 
@@ -72,19 +72,19 @@ class HStack extends View {
         }
 
         var inner = area.inner(insets);
-        var innerConstraint = Constraint.AtMost(inner.width, inner.height);
+        var widths = distributeWidths(inner.width, inner.height);
 
-        // Measure children
+        // Measure with distributed widths
         var childSizes = new Array<Size>();
         var totalFixed = 0;
         var spacerCount = 0;
 
-        for (child in children) {
-            if (Std.isOfType(child, Spacer)) {
+        for (i in 0...children.length) {
+            if (Std.isOfType(children[i], Spacer)) {
                 spacerCount++;
                 childSizes.push(new Size(0, 0));
             } else {
-                var cs = child.measure(innerConstraint);
+                var cs = children[i].measure(Constraint.AtMost(widths[i], inner.height));
                 childSizes.push(cs);
                 totalFixed += cs.width;
             }
@@ -117,5 +117,77 @@ class HStack extends View {
 
             xOffset += w + spacing;
         }
+    }
+
+    function distributeWidths(availW:Int, availH:Int):Array<Int> {
+        var nonSpacerCount = 0;
+        for (child in children) {
+            if (!Std.isOfType(child, Spacer)) nonSpacerCount++;
+        }
+
+        if (nonSpacerCount == 0) {
+            return [for (_ in children) 0];
+        }
+
+        var totalSpacing = children.length > 1 ? spacing * (children.length - 1) : 0;
+        var distributable = availW - totalSpacing;
+        if (distributable < 0) distributable = 0;
+
+        var fairShare = Std.int(distributable / nonSpacerCount);
+
+        // Pass 1: measure with Unbounded to get natural widths
+        var naturalWidths = new Array<Int>();
+        for (child in children) {
+            if (Std.isOfType(child, Spacer)) {
+                naturalWidths.push(0);
+            } else {
+                var cs = child.measure(Constraint.Unbounded);
+                naturalWidths.push(cs.width);
+            }
+        }
+
+        // Check if natural sizes fit
+        var totalNatural = 0;
+        for (i in 0...children.length) {
+            if (!Std.isOfType(children[i], Spacer)) {
+                totalNatural += naturalWidths[i];
+            }
+        }
+
+        // If everything fits naturally, use natural widths
+        if (totalNatural <= distributable) {
+            return naturalWidths;
+        }
+
+        // Pass 2: compact children keep natural width, greedy ones share the rest
+        var compactTotal = 0;
+        var greedyCount = 0;
+        for (i in 0...children.length) {
+            if (Std.isOfType(children[i], Spacer)) continue;
+            if (naturalWidths[i] <= fairShare) {
+                compactTotal += naturalWidths[i];
+            } else {
+                greedyCount++;
+            }
+        }
+
+        var greedyShare = 0;
+        if (greedyCount > 0) {
+            greedyShare = Std.int((distributable - compactTotal) / greedyCount);
+            if (greedyShare < 1) greedyShare = 1;
+        }
+
+        var result = new Array<Int>();
+        for (i in 0...children.length) {
+            if (Std.isOfType(children[i], Spacer)) {
+                result.push(0);
+            } else if (naturalWidths[i] <= fairShare) {
+                result.push(naturalWidths[i]);
+            } else {
+                result.push(greedyShare);
+            }
+        }
+
+        return result;
     }
 }

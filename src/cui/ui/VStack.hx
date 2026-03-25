@@ -33,38 +33,32 @@ class VStack extends View {
         var fh = getFixedHeight();
         if (fh > 0) maxH = fh - insets.verticalTotal();
 
+        var heights = distributeHeights(maxW, maxH);
         var totalH = 0;
         var widest = 0;
         var spacerCount = 0;
-        var childSizes = new Array<Size>();
 
-        // First pass: measure non-spacer children
-        for (child in children) {
-            if (Std.isOfType(child, Spacer)) {
+        for (i in 0...children.length) {
+            if (Std.isOfType(children[i], Spacer)) {
                 spacerCount++;
-                childSizes.push(new Size(0, 0));
             } else {
-                var cs = child.measure(Constraint.AtMost(maxW, maxH));
-                childSizes.push(cs);
-                totalH += cs.height;
+                totalH += heights[i];
+                var cs = children[i].measure(Constraint.AtMost(maxW, heights[i]));
                 if (cs.width > widest) widest = cs.width;
             }
         }
 
-        // Add spacing
         if (children.length > 1) totalH += spacing * (children.length - 1);
 
-        // Distribute remaining space to spacers
         var remaining = maxH - totalH;
         if (remaining > 0 && spacerCount > 0) {
             totalH = maxH;
-        } else if (remaining < 0) {
+        } else if (totalH > maxH) {
             totalH = maxH;
         }
 
         var w = fw > 0 ? fw : widest + insets.horizontalTotal();
         var h = fh > 0 ? fh : totalH + insets.verticalTotal();
-
         return new Size(w, h);
     }
 
@@ -75,25 +69,24 @@ class VStack extends View {
         var borderStyle = getBorderStyle();
         var insets = getInsets();
 
-        // Draw border
         if (borderStyle != cui.render.BorderStyle.None) {
             cui.layout.LayoutEngine.drawBorder(buffer, area, borderStyle, style);
         }
 
         var inner = area.inner(insets);
-        var innerConstraint = Constraint.AtMost(inner.width, inner.height);
+        var heights = distributeHeights(inner.width, inner.height);
 
-        // Measure all children
+        // Measure with distributed heights
         var childSizes = new Array<Size>();
         var totalFixed = 0;
         var spacerCount = 0;
 
-        for (child in children) {
-            if (Std.isOfType(child, Spacer)) {
+        for (i in 0...children.length) {
+            if (Std.isOfType(children[i], Spacer)) {
                 spacerCount++;
                 childSizes.push(new Size(0, 0));
             } else {
-                var cs = child.measure(innerConstraint);
+                var cs = children[i].measure(Constraint.AtMost(inner.width, heights[i]));
                 childSizes.push(cs);
                 totalFixed += cs.height;
             }
@@ -101,7 +94,6 @@ class VStack extends View {
 
         if (children.length > 1) totalFixed += spacing * (children.length - 1);
 
-        // Compute spacer height
         var spacerH = 0;
         var remaining = inner.height - totalFixed;
         if (remaining > 0 && spacerCount > 0) {
@@ -127,5 +119,76 @@ class VStack extends View {
 
             yOffset += h + spacing;
         }
+    }
+
+    function distributeHeights(availW:Int, availH:Int):Array<Int> {
+        var nonSpacerCount = 0;
+        for (child in children) {
+            if (!Std.isOfType(child, Spacer)) nonSpacerCount++;
+        }
+
+        if (nonSpacerCount == 0) {
+            return [for (_ in children) 0];
+        }
+
+        var totalSpacing = children.length > 1 ? spacing * (children.length - 1) : 0;
+        var distributable = availH - totalSpacing;
+        if (distributable < 0) distributable = 0;
+
+        var fairShare = Std.int(distributable / nonSpacerCount);
+
+        // Pass 1: measure with Unbounded to get natural heights
+        var naturalHeights = new Array<Int>();
+        for (child in children) {
+            if (Std.isOfType(child, Spacer)) {
+                naturalHeights.push(0);
+            } else {
+                var cs = child.measure(Constraint.AtMost(availW, 1000));
+                naturalHeights.push(cs.height);
+            }
+        }
+
+        // Check if natural sizes fit
+        var totalNatural = 0;
+        for (i in 0...children.length) {
+            if (!Std.isOfType(children[i], Spacer)) {
+                totalNatural += naturalHeights[i];
+            }
+        }
+
+        if (totalNatural <= distributable) {
+            return naturalHeights;
+        }
+
+        // Pass 2: compact children keep natural height, greedy ones share the rest
+        var compactTotal = 0;
+        var greedyCount = 0;
+        for (i in 0...children.length) {
+            if (Std.isOfType(children[i], Spacer)) continue;
+            if (naturalHeights[i] <= fairShare) {
+                compactTotal += naturalHeights[i];
+            } else {
+                greedyCount++;
+            }
+        }
+
+        var greedyShare = 0;
+        if (greedyCount > 0) {
+            greedyShare = Std.int((distributable - compactTotal) / greedyCount);
+            if (greedyShare < 1) greedyShare = 1;
+        }
+
+        var result = new Array<Int>();
+        for (i in 0...children.length) {
+            if (Std.isOfType(children[i], Spacer)) {
+                result.push(0);
+            } else if (naturalHeights[i] <= fairShare) {
+                result.push(naturalHeights[i]);
+            } else {
+                result.push(greedyShare);
+            }
+        }
+
+        return result;
     }
 }
