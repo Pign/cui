@@ -13,12 +13,11 @@ import cui.ui.Spacer;
 import cui.ui.Button;
 import cui.ui.Input;
 import cui.ui.ListView;
-import cui.ui.ProgressBar;
 
 class TodoApp extends App {
     @:state var inputText:String = "";
+    @:state var selectedIdx:Int = 0;
     var todos:Array<String>;
-    var listView:ListView;
 
     public function new() {
         super();
@@ -26,16 +25,7 @@ class TodoApp extends App {
     }
 
     override public function body():View {
-        var done = 0;
-        var total = todos.length;
-        var progress:Float = total > 0 ? done / total : 0.0;
-
-        listView = new ListView(todos, null, (idx) -> {
-            if (idx >= 0 && idx < todos.length) {
-                todos.splice(idx, 1);
-                StateBase.markDirty();
-            }
-        });
+        var selection = ListSelection.fromState(selectedIdx);
 
         return new VStack([
             new Text("CUI Todo App")
@@ -43,7 +33,15 @@ class TodoApp extends App {
                 .foregroundColor(Color.Named(NamedColor.Cyan)),
             new Text('${todos.length} items').dim(),
             new Spacer(),
-            cast(listView, View)
+            cast(new ListView(todos, selection, null, (idx) -> {
+                if (idx >= 0 && idx < todos.length) {
+                    todos.splice(idx, 1);
+                    if (selectedIdx.get() >= todos.length && todos.length > 0) {
+                        selectedIdx.set(todos.length - 1);
+                    }
+                    StateBase.markDirty();
+                }
+            }), View)
                 .border(Single)
                 .foregroundColor(Color.Named(NamedColor.White)),
             new Spacer(),
@@ -64,11 +62,12 @@ class TodoApp extends App {
                 new Spacer(),
                 new Button("Clear All", () -> {
                     todos.splice(0, todos.length);
+                    selectedIdx.set(0);
                     StateBase.markDirty();
                 }),
                 new Spacer(),
             ], 1),
-            new Text("Tab: navigate | Enter: add | d: delete | Ctrl+C: quit")
+            new Text("Tab: navigate | \u2191\u2193: select | d: delete | Ctrl+C: quit")
                 .dim(),
         ], 1).padding(1).border(Rounded);
     }

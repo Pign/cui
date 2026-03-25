@@ -13,25 +13,31 @@ import cui.state.State;
 
 class ListView extends View {
     var items:Array<String>;
-    var selectedIndex:Int;
+    var selectedBinding:ListSelection;
     var scrollOffset:Int;
     var onSelect:Null<Int->Void>;
     var onDelete:Null<Int->Void>;
 
-    public function new(items:Array<String>, ?onSelect:Int->Void, ?onDelete:Int->Void) {
+    public function new(items:Array<String>, selection:ListSelection, ?onSelect:Int->Void, ?onDelete:Int->Void) {
         super();
         this.items = items;
-        this.selectedIndex = 0;
+        this.selectedBinding = selection;
         this.scrollOffset = 0;
         this.onSelect = onSelect;
         this.onDelete = onDelete;
         this.focusable = true;
     }
 
-    public function setSelectedIndex(idx:Int):Void {
-        selectedIndex = idx;
-        if (selectedIndex < 0) selectedIndex = 0;
-        if (selectedIndex >= items.length) selectedIndex = items.length - 1;
+    function getSelectedIndex():Int {
+        return selectedBinding.get();
+    }
+
+    function setSelectedIndex(v:Int):Void {
+        var clamped = v;
+        if (clamped < 0) clamped = 0;
+        if (clamped >= items.length) clamped = items.length - 1;
+        if (clamped < 0) clamped = 0;
+        selectedBinding.set(clamped);
     }
 
     override public function measure(constraint:Constraint):Size {
@@ -69,6 +75,7 @@ class ListView extends View {
         var inner = area.inner(insets);
         var visibleCount = inner.height;
         var focused = isFocused();
+        var selectedIndex = getSelectedIndex();
 
         // Adjust scroll offset to keep selection visible
         if (selectedIndex < scrollOffset) {
@@ -123,19 +130,18 @@ class ListView extends View {
     }
 
     override public function handleEvent(event:Event):Bool {
+        var selectedIndex = getSelectedIndex();
         switch (event) {
             case Key(key):
                 switch (key.code) {
                     case Up:
                         if (selectedIndex > 0) {
-                            selectedIndex--;
-                            StateBase.markDirty();
+                            setSelectedIndex(selectedIndex - 1);
                             return true;
                         }
                     case Down:
                         if (selectedIndex < items.length - 1) {
-                            selectedIndex++;
-                            StateBase.markDirty();
+                            setSelectedIndex(selectedIndex + 1);
                             return true;
                         }
                     case Enter:
@@ -158,5 +164,30 @@ class ListView extends View {
             default:
         }
         return false;
+    }
+}
+
+class ListSelection {
+    var _get:Void->Int;
+    var _set:Int->Void;
+
+    public function new(getFn:Void->Int, setFn:Int->Void) {
+        _get = getFn;
+        _set = setFn;
+    }
+
+    public function get():Int {
+        return _get();
+    }
+
+    public function set(v:Int):Void {
+        _set(v);
+    }
+
+    public static function fromState(state:IntState):ListSelection {
+        return new ListSelection(
+            () -> state.get(),
+            (v) -> state.set(v)
+        );
     }
 }
