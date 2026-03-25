@@ -9,25 +9,41 @@ import cui.render.BorderStyle;
 import cui.render.Buffer;
 import cui.render.Color;
 import cui.render.Style;
+import cui.event.Event;
+import cui.focus.FocusManager;
 
 class View {
     public var children:Array<View>;
     public var modifiers:Array<ViewModifier>;
     public var frame:Rect;
+    public var focusable:Bool;
+
+    // Global focus manager reference, set by EventLoop
+    public static var focusManager:FocusManager;
 
     public function new() {
         children = [];
         modifiers = [];
         frame = new Rect(0, 0, 0, 0);
+        focusable = false;
     }
 
-    // --- Measure / Arrange / Render (override in subclasses) ---
+    // --- Measure / Arrange / Render / Event (override in subclasses) ---
 
     public function measure(constraint:Constraint):Size {
         return new Size(0, 0);
     }
 
     public function render(buffer:Buffer, area:Rect):Void {}
+
+    public function handleEvent(event:Event):Bool {
+        return false;
+    }
+
+    public function isFocused():Bool {
+        if (focusManager == null) return false;
+        return focusManager.isFocused(this);
+    }
 
     // --- Chainable modifiers ---
 

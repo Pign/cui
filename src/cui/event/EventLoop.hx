@@ -2,6 +2,7 @@ package cui.event;
 
 import cui.backend.Backend;
 import cui.backend.CrossTerminal;
+import cui.focus.FocusManager;
 import cui.layout.Rect;
 import cui.layout.Size;
 import cui.render.Buffer;
@@ -14,11 +15,15 @@ class EventLoop {
     var shouldQuit:Bool;
     var previousBuffer:Buffer;
     var firstFrame:Bool;
+    var focusManager:FocusManager;
+    var lastViewTree:View;
 
     public function new(?backend:Backend) {
         this.backend = backend != null ? backend : CrossTerminal.create();
         shouldQuit = false;
         firstFrame = true;
+        focusManager = new FocusManager();
+        View.focusManager = focusManager;
     }
 
     public function run(bodyFn:Void->View, handleEvent:Event->Bool):Void {
@@ -46,7 +51,7 @@ class EventLoop {
             }
 
             if (event != null) {
-                // Handle built-in events
+                // Handle built-in: Ctrl+C
                 switch (event) {
                     case Key(key):
                         switch (key.code) {
@@ -60,8 +65,17 @@ class EventLoop {
                     default:
                 }
 
-                // Delegate to app
-                handleEvent(event);
+                // Handle focus navigation (Tab / Shift-Tab)
+                if (!focusManager.handleNavigation(event)) {
+                    // Dispatch to focused view first
+                    if (!focusManager.dispatchToFocused(event)) {
+                        // Then to app handler
+                        handleEvent(event);
+                    }
+                } else {
+                    // Focus changed, mark dirty for re-render
+                    StateBase.markDirty();
+                }
             }
 
             // Re-render if state changed
@@ -78,6 +92,11 @@ class EventLoop {
 
     function renderFrame(bodyFn:Void->View, size:Size):Void {
         var viewTree = bodyFn();
+        lastViewTree = viewTree;
+
+        // Build focus ring from current view tree
+        focusManager.buildFocusRing(viewTree);
+
         var currentBuffer = new Buffer(size.width, size.height);
         var area = new Rect(0, 0, size.width, size.height);
 
