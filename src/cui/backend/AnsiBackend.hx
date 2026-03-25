@@ -63,25 +63,26 @@ class AnsiBackend implements Backend {
             return parseEscape();
         }
 
-        // Ctrl+letter (1-26)
-        if (byte >= 1 && byte <= 26) {
-            var ch = String.fromCharCode(byte + 96); // a=1, b=2, etc.
-            return Event.Key(new KeyEvent(KeyCode.Char(ch), true));
-        }
-
-        // Enter
-        if (byte == 13 || byte == 10) {
-            return Event.Key(new KeyEvent(KeyCode.Enter));
-        }
-
-        // Tab
+        // Specific control keys (must come before generic Ctrl+letter range)
+        // Tab = 0x09 (would otherwise match Ctrl+I)
         if (byte == 9) {
             return Event.Key(new KeyEvent(KeyCode.Tab));
         }
 
-        // Backspace
-        if (byte == 127) {
+        // Enter = 0x0D/0x0A (would otherwise match Ctrl+M/Ctrl+J)
+        if (byte == 13 || byte == 10) {
+            return Event.Key(new KeyEvent(KeyCode.Enter));
+        }
+
+        // Backspace = 0x08 or 0x7F
+        if (byte == 8 || byte == 127) {
             return Event.Key(new KeyEvent(KeyCode.Backspace));
+        }
+
+        // Ctrl+letter (remaining: 1-8, 11-12, 14-26)
+        if (byte >= 1 && byte <= 26) {
+            var ch = String.fromCharCode(byte + 96);
+            return Event.Key(new KeyEvent(KeyCode.Char(ch), true));
         }
 
         // Regular character
