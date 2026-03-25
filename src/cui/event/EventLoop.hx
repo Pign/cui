@@ -7,6 +7,7 @@ import cui.layout.Size;
 import cui.render.Buffer;
 import cui.render.Renderer;
 import cui.View;
+import cui.state.State;
 
 class EventLoop {
     var backend:Backend;
@@ -29,20 +30,22 @@ class EventLoop {
         previousBuffer = new Buffer(size.width, size.height);
 
         // Initial render
+        StateBase.clearDirty();
         renderFrame(bodyFn, size);
 
         while (!shouldQuit) {
             var event = backend.pollEvent(16); // ~60fps
 
-            if (event != null) {
-                // Check for resize
-                var newSize = backend.getSize();
-                if (newSize.width != size.width || newSize.height != size.height) {
-                    size = newSize;
-                    previousBuffer = new Buffer(size.width, size.height);
-                    firstFrame = true;
-                }
+            // Check for resize
+            var newSize = backend.getSize();
+            if (newSize.width != size.width || newSize.height != size.height) {
+                size = newSize;
+                previousBuffer = new Buffer(size.width, size.height);
+                firstFrame = true;
+                renderFrame(bodyFn, size);
+            }
 
+            if (event != null) {
                 // Handle built-in events
                 switch (event) {
                     case Key(key):
@@ -59,8 +62,11 @@ class EventLoop {
 
                 // Delegate to app
                 handleEvent(event);
+            }
 
-                // Re-render after any event
+            // Re-render if state changed
+            if (StateBase.isDirty()) {
+                StateBase.clearDirty();
                 renderFrame(bodyFn, size);
             }
         }

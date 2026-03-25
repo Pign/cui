@@ -4,6 +4,7 @@ import cui.event.Event;
 import cui.event.EventLoop;
 import cui.event.KeyEvent;
 
+@:autoBuild(cui.macros.StateMacro.build())
 class App {
     var eventLoop:EventLoop;
 
