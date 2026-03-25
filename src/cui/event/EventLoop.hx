@@ -1,0 +1,93 @@
+package cui.event;
+
+import cui.backend.Backend;
+import cui.backend.CrossTerminal;
+import cui.layout.Rect;
+import cui.layout.Size;
+import cui.render.Buffer;
+import cui.render.Renderer;
+import cui.View;
+
+class EventLoop {
+    var backend:Backend;
+    var shouldQuit:Bool;
+    var previousBuffer:Buffer;
+    var firstFrame:Bool;
+
+    public function new(?backend:Backend) {
+        this.backend = backend != null ? backend : CrossTerminal.create();
+        shouldQuit = false;
+        firstFrame = true;
+    }
+
+    public function run(bodyFn:Void->View, handleEvent:Event->Bool):Void {
+        backend.enterRawMode();
+        backend.enterAlternateScreen();
+        backend.hideCursor();
+
+        var size = backend.getSize();
+        previousBuffer = new Buffer(size.width, size.height);
+
+        // Initial render
+        renderFrame(bodyFn, size);
+
+        while (!shouldQuit) {
+            var event = backend.pollEvent(16); // ~60fps
+
+            if (event != null) {
+                // Check for resize
+                var newSize = backend.getSize();
+                if (newSize.width != size.width || newSize.height != size.height) {
+                    size = newSize;
+                    previousBuffer = new Buffer(size.width, size.height);
+                    firstFrame = true;
+                }
+
+                // Handle built-in events
+                switch (event) {
+                    case Key(key):
+                        switch (key.code) {
+                            case Char(c):
+                                if (c == "c" && key.ctrl) {
+                                    quit();
+                                    continue;
+                                }
+                            default:
+                        }
+                    default:
+                }
+
+                // Delegate to app
+                handleEvent(event);
+
+                // Re-render after any event
+                renderFrame(bodyFn, size);
+            }
+        }
+
+        backend.showCursor();
+        backend.leaveAlternateScreen();
+        backend.leaveRawMode();
+    }
+
+    function renderFrame(bodyFn:Void->View, size:Size):Void {
+        var viewTree = bodyFn();
+        var currentBuffer = new Buffer(size.width, size.height);
+        var area = new Rect(0, 0, size.width, size.height);
+
+        viewTree.render(currentBuffer, area);
+
+        if (firstFrame) {
+            Renderer.renderFull(currentBuffer, backend);
+            firstFrame = false;
+        } else {
+            Renderer.render(previousBuffer, currentBuffer, backend);
+        }
+
+        previousBuffer = currentBuffer;
+    }
+
+    public function quit():Void {
+        shouldQuit = true;
+    }
+}

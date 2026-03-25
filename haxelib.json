@@ -1,0 +1,12 @@
+{
+    "name": "cui",
+    "version": "0.1.0",
+    "description": "Declarative Terminal User Interface framework for Haxe, inspired by sui",
+    "url": "",
+    "license": "MIT",
+    "tags": ["tui", "terminal", "ui", "cli", "declarative"],
+    "classPath": "src",
+    "dependencies": {
+        "hxcpp": ""
+    }
+}
