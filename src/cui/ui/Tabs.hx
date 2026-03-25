@@ -67,6 +67,7 @@ class Tabs extends View {
     }
 
     override public function render(buffer:Buffer, area:Rect):Void {
+        frame = area;
         if (isHidden()) return;
 
         var style = getEffectiveStyle();

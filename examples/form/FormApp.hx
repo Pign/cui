@@ -12,10 +12,13 @@ import cui.ui.HStack;
 import cui.ui.Spacer;
 import cui.ui.Button;
 import cui.ui.Input;
+import cui.ui.Checkbox;
 
 class FormApp extends App {
     @:state var name:String = "";
     @:state var email:String = "";
+    @:state var newsletter:Bool = true;
+    @:state var terms:Bool = false;
     @:state var submitted:Bool = false;
 
     override public function body():View {
@@ -25,8 +28,10 @@ class FormApp extends App {
                     .bold()
                     .foregroundColor(Color.Named(NamedColor.Green)),
                 new Spacer(),
-                new Text('Name:  ${name.get()}'),
-                new Text('Email: ${email.get()}'),
+                new Text('Name:       ${name.get()}'),
+                new Text('Email:      ${email.get()}'),
+                new Text('Newsletter: ${newsletter.get() ? "Yes" : "No"}'),
+                new Text('Terms:      ${terms.get() ? "Accepted" : "Not accepted"}'),
                 new Spacer(),
                 new Button("Back", () -> submitted.set(false)),
             ], 1).padding(1).border(Rounded);
@@ -36,7 +41,7 @@ class FormApp extends App {
             new Text("CUI Form Demo")
                 .bold()
                 .foregroundColor(Color.Named(NamedColor.Cyan)),
-            new Text("Tab/Shift-Tab to navigate, Enter to submit")
+            new Text("Tab: navigate | Enter/Space: toggle | Click: focus")
                 .dim(),
             new Spacer(),
             new HStack([
@@ -50,6 +55,9 @@ class FormApp extends App {
                     .border(Single),
             ], 0),
             new Spacer(),
+            new Checkbox("Subscribe to newsletter", CheckboxBinding.fromState(newsletter)),
+            new Checkbox("I accept the terms", CheckboxBinding.fromState(terms)),
+            new Spacer(),
             new HStack([
                 new Spacer(),
                 new Button("Submit", () -> submitted.set(true)),
@@ -57,6 +65,8 @@ class FormApp extends App {
                 new Button("Clear", () -> {
                     name.set("");
                     email.set("");
+                    newsletter.set(true);
+                    terms.set(false);
                 }),
                 new Spacer(),
             ], 1),

@@ -57,6 +57,15 @@ class FocusManager {
         return focusableViews.length;
     }
 
+    public function focusView(view:View):Void {
+        for (i in 0...focusableViews.length) {
+            if (focusableViews[i] == view) {
+                focusIndex = i;
+                return;
+            }
+        }
+    }
+
     public function handleNavigation(event:Event):Bool {
         switch (event) {
             case Key(key):

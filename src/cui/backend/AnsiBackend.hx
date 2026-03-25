@@ -3,6 +3,7 @@ package cui.backend;
 import cui.layout.Size;
 import cui.event.Event;
 import cui.event.KeyEvent;
+import cui.event.MouseEvent;
 import cui.backend.native.PosixTerminal;
 
 class AnsiBackend implements Backend {
@@ -50,6 +51,15 @@ class AnsiBackend implements Backend {
 
     public function getSize():Size {
         return PosixTerminal.getTermSize();
+    }
+
+    public function enableMouseCapture():Void {
+        // Enable SGR mouse mode (1006) + any-event tracking (1003)
+        PosixTerminal.writeStdout("\x1b[?1000h\x1b[?1006h");
+    }
+
+    public function disableMouseCapture():Void {
+        PosixTerminal.writeStdout("\x1b[?1006l\x1b[?1000l");
     }
 
     public function pollEvent(timeoutMs:Int):Null<Event> {
@@ -131,6 +141,11 @@ class AnsiBackend implements Backend {
         var b3 = PosixTerminal.readByteImmediate();
         if (b3 < 0) return Event.Key(new KeyEvent(KeyCode.Escape));
 
+        // SGR mouse: \x1b[< btn;col;row M/m
+        if (b3 == 60) { // '<'
+            return parseSgrMouse();
+        }
+
         // Arrow keys and simple sequences
         return switch (b3) {
             case 65: Event.Key(new KeyEvent(KeyCode.Up));
@@ -148,6 +163,56 @@ class AnsiBackend implements Backend {
                     Event.Key(new KeyEvent(KeyCode.Escape));
                 }
         };
+    }
+
+    function parseSgrMouse():Null<Event> {
+        // Read: btn;col;row followed by M (press) or m (release)
+        var params = new Array<Int>();
+        var current = 0;
+
+        while (true) {
+            var b = PosixTerminal.readByteImmediate();
+            if (b < 0) return null;
+
+            if (b >= 48 && b <= 57) {
+                current = current * 10 + (b - 48);
+            } else if (b == 59) { // ;
+                params.push(current);
+                current = 0;
+            } else if (b == 77 || b == 109) { // M=press, m=release
+                params.push(current);
+                var isPress = (b == 77);
+
+                if (params.length >= 3) {
+                    var btnCode = params[0];
+                    var col = params[1] - 1; // 1-based to 0-based
+                    var row = params[2] - 1;
+
+                    var button = switch (btnCode & 3) {
+                        case 0: MouseButton.Left;
+                        case 1: MouseButton.Middle;
+                        case 2: MouseButton.Right;
+                        default: MouseButton.None;
+                    };
+
+                    // Scroll wheel
+                    if (btnCode & 64 != 0) {
+                        button = (btnCode & 1 == 0) ? MouseButton.ScrollUp : MouseButton.ScrollDown;
+                    }
+
+                    var action = isPress ? MouseAction.Press : MouseAction.Release;
+                    // Motion flag
+                    if (btnCode & 32 != 0) {
+                        action = MouseAction.Move;
+                    }
+
+                    return Event.Mouse(new MouseEvent(col, row, button, action));
+                }
+                return null;
+            } else {
+                return null; // unexpected byte, bail
+            }
+        }
     }
 
     function parseExtendedCsi(firstDigit:Int):Null<Event> {

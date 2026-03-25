@@ -30,6 +30,7 @@ class EventLoop {
         backend.enterRawMode();
         backend.enterAlternateScreen();
         backend.hideCursor();
+        backend.enableMouseCapture();
 
         var size = backend.getSize();
         previousBuffer = new Buffer(size.width, size.height);
@@ -65,6 +66,15 @@ class EventLoop {
                     default:
                 }
 
+                // Handle mouse clicks — focus the clicked view
+                switch (event) {
+                    case Mouse(mouse):
+                        if (mouse.action == Press && mouse.button == Left) {
+                            handleMouseClick(mouse.x, mouse.y);
+                        }
+                    default:
+                }
+
                 // Handle focus navigation (Tab / Shift-Tab)
                 if (!focusManager.handleNavigation(event)) {
                     // Dispatch to focused view first
@@ -73,7 +83,6 @@ class EventLoop {
                         handleEvent(event);
                     }
                 } else {
-                    // Focus changed, mark dirty for re-render
                     StateBase.markDirty();
                 }
             }
@@ -85,9 +94,35 @@ class EventLoop {
             }
         }
 
+        backend.disableMouseCapture();
         backend.showCursor();
         backend.leaveAlternateScreen();
         backend.leaveRawMode();
+    }
+
+    function handleMouseClick(x:Int, y:Int):Void {
+        if (lastViewTree == null) return;
+
+        // Find the deepest focusable view at (x, y)
+        var target = hitTest(lastViewTree, x, y);
+        if (target != null) {
+            // Focus this view
+            focusManager.focusView(target);
+            StateBase.markDirty();
+        }
+    }
+
+    function hitTest(view:View, x:Int, y:Int):Null<View> {
+        // Check children first (deeper match wins)
+        for (child in view.children) {
+            var hit = hitTest(child, x, y);
+            if (hit != null) return hit;
+        }
+        // Check this view
+        if (view.focusable && view.frame.contains(x, y)) {
+            return view;
+        }
+        return null;
     }
 
     function renderFrame(bodyFn:Void->View, size:Size):Void {

@@ -15,4 +15,6 @@ interface Backend {
     function flush():Void;
     function getSize():Size;
     function pollEvent(timeoutMs:Int):Null<Event>;
+    function enableMouseCapture():Void;
+    function disableMouseCapture():Void;
 }
