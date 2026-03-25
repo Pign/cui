@@ -1,0 +1,4 @@
+-cp src
+-cp examples/todo
+-main TodoApp
+-cpp bin-todo
