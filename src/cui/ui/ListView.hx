@@ -43,10 +43,11 @@ class ListView extends View {
             case AtMost(w, _): w;
             case Unbounded: 40;
         };
+        var naturalH = items.length + insets.verticalTotal();
         var maxH = switch (constraint) {
             case Exact(_, h): h;
-            case AtMost(_, h): h;
-            case Unbounded: items.length + insets.verticalTotal();
+            case AtMost(_, h): Std.int(Math.min(naturalH, h));
+            case Unbounded: naturalH;
         };
         return new Size(
             fw > 0 ? fw : maxW,

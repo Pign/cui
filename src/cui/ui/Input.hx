@@ -28,7 +28,7 @@ class Input extends View {
         var fw = getFixedWidth();
         var maxW = switch (constraint) {
             case Exact(w, _): w;
-            case AtMost(w, _): w;
+            case AtMost(w, _): Std.int(Math.min(30, w));
             case Unbounded: 30;
         };
         var fh = getFixedHeight();

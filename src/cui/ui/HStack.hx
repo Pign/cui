@@ -101,6 +101,8 @@ class HStack extends View {
         // Render children
         var xOffset = inner.x;
         for (i in 0...children.length) {
+            if (xOffset >= inner.x + inner.width) break;
+
             var child = children[i];
             var cs = childSizes[i];
             var w = Std.isOfType(child, Spacer) ? spacerW : cs.width;
@@ -108,7 +110,7 @@ class HStack extends View {
             if (xOffset + w > inner.x + inner.width) {
                 w = inner.x + inner.width - xOffset;
             }
-            if (w <= 0) break;
+            if (w <= 0) { xOffset += spacing; continue; }
 
             var childArea = new Rect(xOffset, inner.y, w, inner.height);
             child.render(buffer, childArea);

@@ -111,6 +111,8 @@ class VStack extends View {
         // Render children
         var yOffset = inner.y;
         for (i in 0...children.length) {
+            if (yOffset >= inner.y + inner.height) break;
+
             var child = children[i];
             var cs = childSizes[i];
             var h = Std.isOfType(child, Spacer) ? spacerH : cs.height;
@@ -118,7 +120,7 @@ class VStack extends View {
             if (yOffset + h > inner.y + inner.height) {
                 h = inner.y + inner.height - yOffset;
             }
-            if (h <= 0) break;
+            if (h <= 0) { yOffset += spacing; continue; }
 
             var childArea = new Rect(inner.x, yOffset, inner.width, h);
             child.render(buffer, childArea);
