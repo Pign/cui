@@ -6,6 +6,7 @@
     "license": "MIT",
     "tags": ["tui", "terminal", "ui", "cli", "declarative"],
     "classPath": "src",
+    "main": "Run",
     "dependencies": {
         "hxcpp": ""
     }
