@@ -87,12 +87,17 @@ new Divider(true, "=")            // custom character
 Wraps content that may exceed the available space, providing vertical scrolling with a scrollbar.
 
 ```haxe
+@:state var scrollPos:Int = 0;
+
 new ScrollView(
-    new VStack(longContent, 0)
+    new VStack(longContent, 0),
+    ScrollOffset.fromState(scrollPos)
 ).border(Single)
 ```
 
-**Constructor**: `new ScrollView(child:View)`
+**Constructor**: `new ScrollView(child:View, offset:ScrollOffset)`
+
+The scroll offset is managed externally via `ScrollOffset` to persist across re-renders (same pattern as `ListSelection` and `TabSelection`).
 
 ### Interaction
 

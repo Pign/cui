@@ -11,18 +11,51 @@ import cui.render.Buffer;
 import cui.render.Style;
 import cui.state.State;
 
+class ScrollOffset {
+    var _get:Void->Int;
+    var _set:Int->Void;
+
+    public function new(getFn:Void->Int, setFn:Int->Void) {
+        _get = getFn;
+        _set = setFn;
+    }
+
+    public function get():Int {
+        return _get();
+    }
+
+    public function set(v:Int):Void {
+        _set(v);
+    }
+
+    public static function fromState(state:IntState):ScrollOffset {
+        return new ScrollOffset(
+            () -> state.get(),
+            (v) -> state.set(v)
+        );
+    }
+}
+
 class ScrollView extends View {
     var child:View;
-    var scrollOffset:Int;
+    var offsetBinding:ScrollOffset;
     var contentHeight:Int;
 
-    public function new(child:View) {
+    public function new(child:View, offset:ScrollOffset) {
         super();
         this.child = child;
         this.children = [child];
-        this.scrollOffset = 0;
+        this.offsetBinding = offset;
         this.contentHeight = 0;
         this.focusable = true;
+    }
+
+    function getOffset():Int {
+        return offsetBinding.get();
+    }
+
+    function setOffset(v:Int):Void {
+        offsetBinding.set(v);
     }
 
     override public function measure(constraint:Constraint):Size {
@@ -64,6 +97,7 @@ class ScrollView extends View {
         contentHeight = childSize.height;
 
         // Clamp scroll offset
+        var scrollOffset = getOffset();
         var maxScroll = contentHeight - inner.height;
         if (maxScroll < 0) maxScroll = 0;
         if (scrollOffset > maxScroll) scrollOffset = maxScroll;
@@ -98,42 +132,39 @@ class ScrollView extends View {
     }
 
     override public function handleEvent(event:Event):Bool {
+        var scrollOffset = getOffset();
+        var maxScroll = contentHeight - 10;
+        if (maxScroll < 0) maxScroll = 0;
+
         switch (event) {
             case Key(key):
                 switch (key.code) {
                     case Up:
                         if (scrollOffset > 0) {
-                            scrollOffset--;
-                            StateBase.markDirty();
+                            setOffset(scrollOffset - 1);
                             return true;
                         }
                     case Down:
-                        var maxScroll = contentHeight - 10; // approximate
                         if (scrollOffset < maxScroll) {
-                            scrollOffset++;
-                            StateBase.markDirty();
+                            setOffset(scrollOffset + 1);
                             return true;
                         }
                     case PageUp:
-                        scrollOffset = Std.int(Math.max(0, scrollOffset - 10));
-                        StateBase.markDirty();
+                        setOffset(Std.int(Math.max(0, scrollOffset - 10)));
                         return true;
                     case PageDown:
-                        scrollOffset += 10;
-                        StateBase.markDirty();
+                        setOffset(scrollOffset + 10);
                         return true;
                     default:
                 }
             case Mouse(mouse):
                 if (mouse.button == ScrollUp) {
                     if (scrollOffset > 0) {
-                        scrollOffset = Std.int(Math.max(0, scrollOffset - 3));
-                        StateBase.markDirty();
+                        setOffset(Std.int(Math.max(0, scrollOffset - 3)));
                         return true;
                     }
                 } else if (mouse.button == ScrollDown) {
-                    scrollOffset += 3;
-                    StateBase.markDirty();
+                    setOffset(scrollOffset + 3);
                     return true;
                 }
             default:

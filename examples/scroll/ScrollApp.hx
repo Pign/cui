@@ -9,8 +9,11 @@ import cui.ui.VStack;
 import cui.ui.HStack;
 import cui.ui.Spacer;
 import cui.ui.ScrollView;
+import cui.state.State;
 
 class ScrollApp extends App {
+    @:state var scrollPos:Int = 0;
+
     override public function body():View {
         // Build a long content that exceeds terminal height
         var lines = new Array<View>();
@@ -92,7 +95,8 @@ class ScrollApp extends App {
                     .dim(),
             ], 0),
             cast(new ScrollView(
-                new VStack(lines, 0)
+                new VStack(lines, 0),
+                ScrollOffset.fromState(scrollPos)
             ), View).border(Single),
         ], 0).padding(1).border(Rounded);
     }
