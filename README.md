@@ -144,11 +144,13 @@ Full re-render on every state change (immediate-mode). Buffer diffing ensures on
 ## Examples
 
 ```bash
-haxe build.hxml           && ./bin/HelloApp          # Layout demo
-haxe build-counter.hxml   && ./bin-counter/CounterApp # Reactive state
-haxe build-form.hxml      && ./bin-form/FormApp       # Form with inputs, checkboxes
-haxe build-todo.hxml      && ./bin-todo/TodoApp       # Todo list
-haxe build-dashboard.hxml && ./bin-dashboard/DashboardApp # Tabs, tables, progress bars
+haxe build.hxml              && ./bin/HelloApp                       # Layout demo
+haxe build-counter.hxml      && ./bin-counter/CounterApp             # Reactive state
+haxe build-form.hxml         && ./bin-form/FormApp                   # Form, inputs, checkboxes
+haxe build-todo.hxml         && ./bin-todo/TodoApp                   # Todo list
+haxe build-dashboard.hxml    && ./bin-dashboard/DashboardApp         # Tabs, tables, progress bars
+haxe build-scroll.hxml       && ./bin-scroll/ScrollApp               # ScrollView with long content
+haxe build-shared-state.hxml && ./bin-shared-state/SharedStateApp    # Observable shared state
 ```
 
 ## Requirements

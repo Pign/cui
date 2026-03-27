@@ -1,0 +1,4 @@
+-cp src
+-cp examples/shared-state
+-main SharedStateApp
+-cpp bin-shared-state
