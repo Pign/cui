@@ -40,6 +40,7 @@ class ScrollView extends View {
     var child:View;
     var offsetBinding:ScrollOffset;
     var contentHeight:Int;
+    var visibleHeight:Int;
 
     public function new(child:View, offset:ScrollOffset) {
         super();
@@ -47,6 +48,7 @@ class ScrollView extends View {
         this.children = [child];
         this.offsetBinding = offset;
         this.contentHeight = 0;
+        this.visibleHeight = 0;
         this.focusable = true;
     }
 
@@ -55,6 +57,10 @@ class ScrollView extends View {
     }
 
     function setOffset(v:Int):Void {
+        var maxScroll = contentHeight - visibleHeight;
+        if (maxScroll < 0) maxScroll = 0;
+        if (v > maxScroll) v = maxScroll;
+        if (v < 0) v = 0;
         offsetBinding.set(v);
     }
 
@@ -91,6 +97,7 @@ class ScrollView extends View {
         }
 
         var inner = area.inner(insets);
+        visibleHeight = inner.height;
 
         // Measure child at full height to know content size
         var childSize = child.measure(Constraint.AtMost(inner.width - 1, 10000));
@@ -132,40 +139,25 @@ class ScrollView extends View {
     }
 
     override public function handleEvent(event:Event):Bool {
-        var scrollOffset = getOffset();
-        var maxScroll = contentHeight - 10;
-        if (maxScroll < 0) maxScroll = 0;
+        var prev = getOffset();
 
         switch (event) {
             case Key(key):
                 switch (key.code) {
-                    case Up:
-                        if (scrollOffset > 0) {
-                            setOffset(scrollOffset - 1);
-                            return true;
-                        }
-                    case Down:
-                        if (scrollOffset < maxScroll) {
-                            setOffset(scrollOffset + 1);
-                            return true;
-                        }
-                    case PageUp:
-                        setOffset(Std.int(Math.max(0, scrollOffset - 10)));
-                        return true;
-                    case PageDown:
-                        setOffset(scrollOffset + 10);
-                        return true;
-                    default:
+                    case Up:    setOffset(prev - 1);
+                    case Down:  setOffset(prev + 1);
+                    case PageUp:  setOffset(prev - visibleHeight);
+                    case PageDown: setOffset(prev + visibleHeight);
+                    default: return false;
                 }
+                return getOffset() != prev;
             case Mouse(mouse):
                 if (mouse.button == ScrollUp) {
-                    if (scrollOffset > 0) {
-                        setOffset(Std.int(Math.max(0, scrollOffset - 3)));
-                        return true;
-                    }
+                    setOffset(prev - 3);
+                    return getOffset() != prev;
                 } else if (mouse.button == ScrollDown) {
-                    setOffset(scrollOffset + 3);
-                    return true;
+                    setOffset(prev + 3);
+                    return getOffset() != prev;
                 }
             default:
         }
