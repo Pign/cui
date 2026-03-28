@@ -43,10 +43,14 @@ class Renderer {
 
     public static function renderFull(buffer:Buffer, backend:Backend):Void {
         var output = new StringBuf();
-        output.add("\x1b[H"); // home
         var lastStyle:Style = null;
 
         for (y in 0...buffer.height) {
+            // Position cursor at start of each row to avoid wrapping issues
+            output.add("\x1b[");
+            output.add(Std.string(y + 1));
+            output.add(";1H");
+
             for (x in 0...buffer.width) {
                 var cell = buffer.get(x, y);
                 if (lastStyle == null || !cell.style.equals(lastStyle)) {
