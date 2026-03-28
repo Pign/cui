@@ -10,6 +10,7 @@ class MyApp extends App {
 
     override public function body():View {
         return new Text('Count: ${count.get()}');
+        // count.value also works: new Text('Count: ${count.value}')
     }
 }
 ```
@@ -34,7 +35,7 @@ This is an **immediate-mode** approach — `body()` is a pure function of state,
 | `String` | `StringState` | `.append()`, `.clear()` |
 | Other | `State<T>` | (base methods only) |
 
-All state types share: `.get()`, `.set(value)`, `.setTo(value)`, `.toString()`
+All state types share: `.get()`, `.set(value)`, `.value` (get/set property), `.name` (read-only), `.setTo(value)`, `.toString()`
 
 ## Where State Lives
 

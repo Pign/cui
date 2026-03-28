@@ -19,10 +19,11 @@ The `StateMacro` transforms these at compile time:
 
 ## Reading State
 
-Use `.get()` to read the current value:
+Use `.get()` or `.value` to read the current value:
 
 ```haxe
 new Text('Count: ${count.get()}')
+new Text('Count: ${count.value}')   // equivalent
 ```
 
 In string interpolation, `.toString()` is called automatically:
@@ -31,13 +32,20 @@ In string interpolation, `.toString()` is called automatically:
 new Text('Count: $count')  // also works
 ```
 
+The `.name` property returns the registered state name:
+
+```haxe
+trace(count.name);  // "count"
+```
+
 ## Mutating State
 
 ### Common Methods (all types)
 
 ```haxe
 count.set(42);       // set to a specific value
-count.setTo(42);     // same, but returns the State for chaining
+count.value = 42;    // equivalent — the .value property is read/write
+count.setTo(42);     // same as set, but returns the State for chaining
 ```
 
 ### IntState
