@@ -97,3 +97,47 @@ When focused, the checkbox marker displays with inverse colors.
 |-------|--------|
 | Enter | Toggle |
 | Space | Toggle |
+
+## Slider
+
+A horizontal slider rendered as a filled bar with a percentage label.
+
+```haxe
+@:state var volume:Float = 0.5;
+
+new Slider(SliderBinding.fromState(volume), 0.0, 1.0)
+```
+
+Renders as:
+
+```
+████████░░░░░░░░  50%
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| binding | `SliderBinding` | required | Two-way binding to a `FloatState` |
+| min | `Float` | `0.0` | Minimum value |
+| max | `Float` | `1.0` | Maximum value |
+| step | `Float` | `0.05` | Increment per arrow key press |
+
+### Interaction
+
+| Input | Action |
+|-------|--------|
+| Right | Increase value by step |
+| Left | Decrease value by step |
+
+### SliderBinding
+
+Create from a `FloatState`:
+
+```haxe
+SliderBinding.fromState(myFloatState)
+```
+
+Or manually with getter/setter:
+
+```haxe
+new SliderBinding(() -> getValue(), (v) -> setValue(v))
+```
