@@ -20,14 +20,14 @@ class State<T> {
     var _value:T;
     var _name:String;
 
-    public var name(get_name, never):String;
+    public var name(get, never):String;
 
     function get_name():String {
         return _name;
     }
 
     /** Read or write the state value. Writing triggers a dirty flag. **/
-    public var value(get_value, set_value):T;
+    public var value(get, set):T;
 
     function get_value():T {
         return _value;
